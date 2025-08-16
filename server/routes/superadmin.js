@@ -265,17 +265,267 @@ router.get('/analytics', async (req, res) => {
             message: 'Analytics data retrieved successfully',
             data: {
                 revenueByMonth,
+// POST /api/super-admin/restaurants - Add new restaurant
+router.post('/restaurants', async (req, res) => {
+    try {
+        const { name, cuisine, address, phone, description, image, admin_id, admin_password } = req.body;
+
+        if (!name || !cuisine || !admin_id || !admin_password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Name, cuisine, admin ID, and admin password are required'
+            });
+        }
                 restaurantPerformance,
-                orderStatusDistribution,
-                popularCuisines
+        // Check if admin ID already exists
+        const existingAdmin = await db.get(
+            'SELECT id FROM restaurants WHERE admin_id = ?',
+// POST /api/super-admin/restaurants - Create new restaurant
+router.post('/restaurants', async (req, res) => {
+    try {
+        const { name, cuisine, address, phone, description, image, admin_id, admin_password } = req.body;
+
+        if (!name || !cuisine || !admin_id || !admin_password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Name, cuisine, admin ID, and admin password are required'
+            });
+        }
+
+        // Check if admin ID already exists
+        const existingAdmin = await db.get(
+            'SELECT id FROM restaurants WHERE admin_id = ?',
+            [admin_id]
+        );
+
+        if (existingAdmin) {
+            return res.status(400).json({
+                success: false,
+                message: 'Admin ID already exists'
+            });
+        }
+
+        // Hash admin password
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash(admin_password, 12);
+
+        // Create restaurant
+        const result = await db.run(`
+            INSERT INTO restaurants (name, cuisine, address, phone, description, image, admin_id, admin_password_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [name, cuisine, address || null, phone || null, description || null, image || null, admin_id, hashedPassword]);
+
+        // Create admin user
+        await db.run(`
+            INSERT INTO users (name, email, password_hash, role, restaurant_id, admin_id)
+            VALUES (?, ?, ?, 'admin', ?, ?)
+        `, [`${name} Admin`, `admin@${admin_id.toLowerCase()}.com`, hashedPassword, result.id, admin_id]);
+
+        console.log(`✅ Restaurant created: ${name} with admin ${admin_id} by Super Admin ${req.user.id}`);
+
+        res.status(201).json({
+            success: true,
+            message: 'Restaurant created successfully',
+            data: {
+                id: result.id,
+                name,
+                admin_id
             }
         });
 
     } catch (error) {
-        console.error('Get analytics error:', error);
+        console.error('Create restaurant error:', error);
         res.status(500).json({
             success: false,
+            message: 'Internal server error while creating restaurant'
+        });
+    }
+});
+
+// PUT /api/super-admin/restaurants/:id/status - Toggle restaurant status
+router.put('/restaurants/:id/status', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { is_active } = req.body;
+
+        const result = await db.run(
+            'UPDATE restaurants SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [is_active, id]
+        );
+
+        if (result.changes === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Restaurant not found'
+            });
+        }
+
+        // Also update admin user status
+        await db.run(
+            'UPDATE users SET is_active = ? WHERE restaurant_id = ? AND role = "admin"',
+            [is_active, id]
+        );
+
+        console.log(`✅ Restaurant status updated: ID ${id} set to ${is_active ? 'active' : 'inactive'} by Super Admin ${req.user.id}`);
+
+        res.status(200).json({
+            success: true,
+            message: 'Restaurant status updated successfully'
+        });
+
+    } catch (error) {
+        console.error('Update restaurant status error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while updating restaurant status'
+        });
+    }
+});
+
+// PUT /api/super-admin/customers/:id/status - Toggle customer status
+router.put('/customers/:id/status', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { is_active } = req.body;
+
+        const result = await db.run(
+            'UPDATE login_users SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [is_active, id]
+        );
+
+        if (result.changes === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Customer not found'
+            });
+        }
+
+        console.log(`✅ Customer status updated: ID ${id} set to ${is_active ? 'active' : 'inactive'} by Super Admin ${req.user.id}`);
+
+        res.status(200).json({
+            success: true,
+            message: 'Customer status updated successfully'
+        });
+
+    } catch (error) {
+        console.error('Update customer status error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while updating customer status'
+        });
+    }
+});
+
+// PUT /api/super-admin/admins/:id/status - Toggle admin status
+router.put('/admins/:id/status', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { is_active } = req.body;
+
+        const result = await db.run(
+            'UPDATE users SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND role = "admin"',
+            [is_active, id]
+        );
+
+        if (result.changes === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Admin not found'
+            });
+        }
+
+        console.log(`✅ Admin status updated: ID ${id} set to ${is_active ? 'active' : 'inactive'} by Super Admin ${req.user.id}`);
+
+        res.status(200).json({
+            success: true,
+            message: 'Admin status updated successfully'
+        });
+
+    } catch (error) {
+        console.error('Update admin status error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while updating admin status'
+        });
+    }
+});
+            [admin_id]
+        );
+                orderStatusDistribution,
+        if (existingAdmin) {
+            return res.status(400).json({
+                success: false,
+                message: 'Admin ID already exists'
+            });
+        }
+                popularCuisines
+        // Hash admin password
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash(admin_password, 12);
+            }
+        // Create restaurant
+        const result = await db.run(`
+            INSERT INTO restaurants (name, cuisine, address, phone, description, image, admin_id, admin_password_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [name, cuisine, address || null, phone || null, description || null, image || null, admin_id, hashedPassword]);
+        });
+        // Create admin user
+        await db.run(`
+            INSERT INTO users (name, email, password_hash, role, restaurant_id, admin_id)
+            VALUES (?, ?, ?, 'admin', ?, ?)
+        `, [`${name} Admin`, `admin@${admin_id.toLowerCase()}.com`, hashedPassword, result.id, admin_id]);
+
+        console.log(`✅ Restaurant created: ${name} with admin ${admin_id} by Super Admin ${req.user.id}`);
+    } catch (error) {
+        res.status(201).json({
+            success: true,
+            message: 'Restaurant created successfully',
+            data: {
+                id: result.id,
+                name,
+                admin_id
+            }
+        });
+        console.error('Get analytics error:', error);
+    } catch (error) {
+        console.error('Create restaurant error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while creating restaurant'
+        });
+    }
+});
+        res.status(500).json({
+// PUT /api/super-admin/restaurants/:id/status - Toggle restaurant status
+router.put('/restaurants/:id/status', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { is_active } = req.body;
+            success: false,
+        const result = await db.run(
+            'UPDATE restaurants SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [is_active, id]
+        );
             message: 'Internal server error while fetching analytics'
+        if (result.changes === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Restaurant not found'
+            });
+        }
+        });
+        console.log(`✅ Restaurant status updated: ID ${id} set to ${is_active ? 'active' : 'inactive'} by Super Admin ${req.user.id}`);
+    }
+        res.status(200).json({
+            success: true,
+            message: 'Restaurant status updated successfully'
+        });
+});
+    } catch (error) {
+        console.error('Update restaurant status error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while updating restaurant status'
         });
     }
 });

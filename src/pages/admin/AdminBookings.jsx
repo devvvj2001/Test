@@ -72,7 +72,7 @@ const AdminBookings = () => {
 
   const updateBookingStatus = async (bookingId, newStatus) => {
     try {
-      const response = await apiCall(`/admin/bookings/${bookingId}/status`, {
+      const response = await apiCall(`/admin/bookings/${bookingId}`, {
         method: 'PUT',
         body: { status: newStatus }
       });

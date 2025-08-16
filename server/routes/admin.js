@@ -956,4 +956,59 @@ router.get('/bookings', async (req, res) => {
     }
 });
 
+// PUT /api/admin/bookings/:id - Update booking status
+router.put('/bookings/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const restaurantId = req.user.restaurant_id;
+
+        if (!['confirmed', 'cancelled', 'completed', 'no-show'].includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid booking status'
+            });
+        }
+        if (!existingBooking) {
+            return res.status(404).json({
+                success: false,
+                message: 'Booking not found'
+            });
+        }
+
+        // Update booking status
+        await db.run(
+            'UPDATE bookings SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [status, id]
+        );
+        // Check if booking exists and belongs to admin's restaurant
+        // Update table status based on booking status
+        if (status === 'cancelled') {
+            await db.run(
+                'UPDATE restaurant_tables SET status = "available" WHERE id = ?',
+                [existingBooking.table_id]
+            );
+        } else if (status === 'completed') {
+            await db.run(
+                'UPDATE restaurant_tables SET status = "available" WHERE id = ?',
+                [existingBooking.table_id]
+            );
+        }
+        const existingBooking = await db.get(
+        console.log(`✅ Booking status updated: Booking ${id} changed to ${status} by Admin ${req.user.id}`);
+            'SELECT id, table_id FROM bookings WHERE id = ? AND restaurant_id = ?',
+        res.status(200).json({
+            success: true,
+            message: 'Booking status updated successfully'
+        });
+            [id, restaurantId]
+    } catch (error) {
+        console.error('Update booking status error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while updating booking status'
+        });
+    }
+});
+        );
 module.exports = router;

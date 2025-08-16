@@ -25,10 +25,57 @@ const AdminCustomers = () => {
   const loadCustomers = async () => {
     setIsLoading(true);
     try {
-      const response = await apiCall('/admin/customers');
-      if (response.success) {
-        setCustomers(response.data);
+      // Get customers who have made bookings or orders at this restaurant
+      const [bookingsResponse, ordersResponse] = await Promise.all([
+        apiCall('/admin/bookings'),
+        apiCall('/admin/orders')
+      ]);
+
+      const customerMap = new Map();
+
+      // Process bookings
+      if (bookingsResponse.success) {
+        bookingsResponse.data.forEach(booking => {
+          const customerId = booking.user_id || booking.customer_email;
+          if (!customerMap.has(customerId)) {
+            customerMap.set(customerId, {
+              id: customerId,
+              name: booking.customer_name,
+              email: booking.customer_email,
+              phone: booking.customer_phone,
+              created_at: booking.created_at,
+              total_orders: 0,
+              total_spent: 0,
+              total_bookings: 0
+            });
+          }
+          customerMap.get(customerId).total_bookings += 1;
+        });
       }
+
+      // Process orders
+      if (ordersResponse.success) {
+        ordersResponse.data.forEach(order => {
+          const customerId = order.user_id || order.customer_email;
+          if (!customerMap.has(customerId)) {
+            customerMap.set(customerId, {
+              id: customerId,
+              name: order.customer_name,
+              email: order.customer_email,
+              phone: order.customer_phone,
+              created_at: order.created_at,
+              total_orders: 0,
+              total_spent: 0,
+              total_bookings: 0
+            });
+          }
+          const customer = customerMap.get(customerId);
+          customer.total_orders += 1;
+          customer.total_spent += parseFloat(order.total_amount);
+        });
+      }
+
+      setCustomers(Array.from(customerMap.values()));
     } catch (error) {
       addNotification('Failed to load customers', 'error');
     } finally {

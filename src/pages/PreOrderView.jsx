@@ -7,8 +7,9 @@ import { ArrowLeft, Trash2, Plus, Minus, ShoppingCart, Calendar, Clock } from 'l
 const PreOrderView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { restaurants, cart, removeFromCart, clearCart } = useData();
+  const { restaurants, cart, removeFromCart, clearCart, createOrder } = useData();
   const { addNotification } = useNotification();
+  const { apiCall } = useAuth();
   
   const restaurant = restaurants.find(r => r.id === parseInt(id));
   const restaurantCartItems = cart.filter(item => item.restaurantId === parseInt(id));
@@ -62,15 +63,38 @@ const PreOrderView = () => {
       return;
     }
 
-    // Store order details in localStorage for payment page
-    localStorage.setItem('orderData', JSON.stringify({
-      restaurant,
-      items: groupedItemsArray,
-      orderDetails,
-      pricing: { subtotal, tax, deliveryFee, total }
-    }));
+    // Create order via API
+    const orderPayload = {
+      restaurantId: parseInt(id),
+      orderType: orderDetails.orderType,
+      items: groupedItemsArray.map(item => ({
+        menuItemId: item.id,
+        quantity: item.quantity
+      })),
+      totalAmount: total,
+      scheduledTime: orderDetails.scheduledTime || null,
+      specialInstructions: orderDetails.specialInstructions || null
+    };
 
-    navigate('/payment');
+    createOrder(orderPayload)
+      .then((result) => {
+        addNotification('Order placed successfully!', 'success');
+        clearCart();
+        
+        // Store order details for payment simulation
+        localStorage.setItem('orderData', JSON.stringify({
+          restaurant,
+          items: groupedItemsArray,
+          orderDetails,
+          pricing: { subtotal, tax, deliveryFee, total },
+          orderId: result.data.orderId
+        }));
+        
+        navigate('/payment');
+      })
+      .catch((error) => {
+        addNotification(error.message || 'Failed to place order', 'error');
+      });
   };
 
   if (groupedItemsArray.length === 0) {

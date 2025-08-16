@@ -248,7 +248,7 @@ const AdminOrders = () => {
                     <select
                       value={order.status}
                       onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                      className={`text-xs font-semibold rounded-full px-2 py-1 border-0 ${getStatusColor(order.status)}`}
+                      className="text-xs font-semibold rounded-full px-2 py-1 border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="pending">Pending</option>
                       <option value="confirmed">Confirmed</option>

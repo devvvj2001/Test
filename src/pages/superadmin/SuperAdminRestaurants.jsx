@@ -25,6 +25,17 @@ const SuperAdminRestaurants = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newRestaurant, setNewRestaurant] = useState({
+    name: '',
+    cuisine: '',
+    address: '',
+    phone: '',
+    description: '',
+    image: '',
+    admin_id: '',
+    admin_password: 'admin123'
+  });
 
   useEffect(() => {
     loadRestaurants();
@@ -127,6 +138,33 @@ const SuperAdminRestaurants = () => {
     }
   };
 
+  const handleAddRestaurant = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await apiCall('/super-admin/restaurants', {
+        method: 'POST',
+        body: newRestaurant
+      });
+
+      if (response.success) {
+        addNotification('Restaurant added successfully', 'success');
+        setShowAddModal(false);
+        setNewRestaurant({
+          name: '',
+          cuisine: '',
+          address: '',
+          phone: '',
+          description: '',
+          image: '',
+          admin_id: '',
+          admin_password: 'admin123'
+        });
+        loadRestaurants();
+      }
+    } catch (error) {
+      addNotification(error.message || 'Failed to add restaurant', 'error');
+    }
+  };
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -144,7 +182,7 @@ const SuperAdminRestaurants = () => {
           <p className="text-gray-600">Oversee all restaurants on the platform</p>
         </div>
         <button className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white px-6 py-3 rounded-lg hover:from-yellow-700 hover:to-orange-700 transition-all duration-300 flex items-center space-x-2">
-          <Plus className="w-5 h-5" />
+          <Plus className="w-5 h-5" onClick={() => setShowAddModal(true)} />
           <span>Add Restaurant</span>
         </button>
       </div>
@@ -348,6 +386,96 @@ const SuperAdminRestaurants = () => {
                   Edit Restaurant
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Restaurant Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Restaurant</h3>
+              <form onSubmit={handleAddRestaurant} className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Restaurant Name"
+                  value={newRestaurant.name}
+                  onChange={(e) => setNewRestaurant({...newRestaurant, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Cuisine Type"
+                  value={newRestaurant.cuisine}
+                  onChange={(e) => setNewRestaurant({...newRestaurant, cuisine: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Address"
+                  value={newRestaurant.address}
+                  onChange={(e) => setNewRestaurant({...newRestaurant, address: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  required
+                />
+                <input
+                  type="tel"
+                  placeholder="Phone Number"
+                  value={newRestaurant.phone}
+                  onChange={(e) => setNewRestaurant({...newRestaurant, phone: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  required
+                />
+                <textarea
+                  placeholder="Description"
+                  value={newRestaurant.description}
+                  onChange={(e) => setNewRestaurant({...newRestaurant, description: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  rows={3}
+                />
+                <input
+                  type="url"
+                  placeholder="Image URL"
+                  value={newRestaurant.image}
+                  onChange={(e) => setNewRestaurant({...newRestaurant, image: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Admin ID (e.g., PP004)"
+                  value={newRestaurant.admin_id}
+                  onChange={(e) => setNewRestaurant({...newRestaurant, admin_id: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  required
+                />
+                <input
+                  type="password"
+                  placeholder="Admin Password"
+                  value={newRestaurant.admin_password}
+                  onChange={(e) => setNewRestaurant({...newRestaurant, admin_password: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  required
+                />
+                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2 text-gray-500 hover:text-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+                  >
+                    Add Restaurant
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

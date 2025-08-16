@@ -317,14 +317,71 @@ const AdminMenu = () => {
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-semibold text-gray-900">Restaurant Tables</h2>
-          <span className="text-sm text-gray-500">Total Tables: 0</span>
+          <span className="text-sm text-gray-500">Total Tables: {tables.length}</span>
         </div>
         
-        <div className="text-center py-8">
+        {tables.length === 0 ? (
+          <div className="text-center py-8">
           <Table className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No tables created yet</h3>
           <p className="text-gray-500">Create your first table to get started.</p>
-        </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tables.map((table) => (
+              <div key={table.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                <div className="relative">
+                  <img
+                    src={table.images?.[0] ? `http://localhost:5000${table.images[0].image_path}` : 'https://images.pexels.com/photos/67468/pexels-photo-67468.jpeg'}
+                    alt={`Table ${table.table_number}`}
+                    className="w-full h-32 object-cover"
+                  />
+                  <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full">
+                    <span className="text-sm font-semibold">#{table.table_number}</span>
+                  </div>
+                  <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-full">
+                    <span className="text-xs">{table.capacity} guests</span>
+                  </div>
+                </div>
+                
+                <div className="p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-semibold text-gray-900">Table {table.table_number}</h3>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      table.status === 'available' ? 'bg-green-100 text-green-800' :
+                      table.status === 'reserved' ? 'bg-yellow-100 text-yellow-800' :
+                      table.status === 'occupied' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {table.status}
+                    </span>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600 mb-3 capitalize">{table.type} • {table.capacity} capacity</p>
+                  
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => {
+                        setSelectedTable(table);
+                        setShowImageModal(true);
+                      }}
+                      className="flex-1 bg-blue-50 text-blue-600 py-2 px-3 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium flex items-center justify-center space-x-1"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span>Photos</span>
+                    </button>
+                    <button
+                      onClick={() => deleteTable(table.id)}
+                      className="bg-red-50 text-red-600 py-2 px-3 rounded-lg hover:bg-red-100 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Filters */}

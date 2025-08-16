@@ -7,26 +7,57 @@ import { ArrowLeft, Plus, Minus, ShoppingCart, Star, Leaf, Heart, Filter } from 
 const MenuView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { restaurants, getMenuItems, addToCart, cart } = useData();
+  const { restaurants, addToCart, cart } = useData();
   const { addNotification } = useNotification();
+  const { apiCall } = useAuth();
   
   const restaurant = restaurants.find(r => r.id === parseInt(id));
-  const menuItems = getMenuItems(parseInt(id));
+  const [menuItems, setMenuItems] = useState([]);
+  const [isLoadingMenu, setIsLoadingMenu] = useState(true);
   
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedDietary, setSelectedDietary] = useState('all');
   const [itemQuantities, setItemQuantities] = useState({});
 
+  // Load menu items from API
+  useEffect(() => {
+    loadMenuItems();
+  }, [id]);
+
+  const loadMenuItems = async () => {
+    setIsLoadingMenu(true);
+    try {
+      const result = await apiCall(`/restaurants/${id}/menu`);
+      if (result.success) {
+        setMenuItems(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to load menu items:', error);
+      addNotification('Failed to load menu items', 'error');
+    } finally {
+      setIsLoadingMenu(false);
+    }
+  };
   if (!restaurant) {
     return <div>Restaurant not found</div>;
   }
 
+  if (isLoadingMenu) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading menu...</p>
+        </div>
+      </div>
+    );
+  }
   const categories = ['all', ...new Set(menuItems.map(item => item.category))];
   const dietaryOptions = ['all', 'vegetarian', 'gluten-free', 'healthy'];
 
   const filteredItems = menuItems.filter(item => {
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    const matchesDietary = selectedDietary === 'all' || (item.dietary && item.dietary.includes(selectedDietary));
+    const matchesDietary = selectedDietary === 'all' || (item.dietary && item.dietary.split(',').map(d => d.trim()).includes(selectedDietary));
     return matchesCategory && matchesDietary;
   });
 

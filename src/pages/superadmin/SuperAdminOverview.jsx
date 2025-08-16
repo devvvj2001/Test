@@ -48,8 +48,14 @@ const SuperAdminOverview = () => {
           pendingOrders: 23,
           activeAdmins: 3
         },
-        recentOrders: [],
-        recentBookings: []
+        recentOrders: [
+          { id: 1, restaurant_name: 'The Golden Spoon', customer_name: 'John Doe', total_amount: 89.99, status: 'completed' },
+          { id: 2, restaurant_name: 'Sakura Sushi', customer_name: 'Jane Smith', total_amount: 45.99, status: 'pending' }
+        ],
+        recentBookings: [
+          { id: 1, restaurant_name: 'The Golden Spoon', customer_name: 'Alice Johnson', date: '2025-01-31', time: '19:00', guests: 2 },
+          { id: 2, restaurant_name: "Mama's Italian", customer_name: 'Bob Wilson', date: '2025-01-31', time: '20:00', guests: 4 }
+        ]
       });
     } finally {
       setIsLoading(false);

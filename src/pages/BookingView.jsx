@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Calendar, Clock, Users, ArrowLeft, Check, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
+import { useNotification } from '../context/NotificationContext';
 
 
 function App() {
@@ -14,6 +16,8 @@ function App() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { apiCall } = useAuth();
+  const { addBooking } = useData();
+  const { addNotification } = useNotification();
   const [bookingData, setBookingData] = useState({
     date: '',
     time: '',
@@ -29,14 +33,14 @@ function App() {
   const loadTables = async () => {
     setIsLoadingPhotos(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/restaurants/${id}/tables`);
-      const result = await response.json();
+      const result = await apiCall(`/restaurants/${id}/tables`);
       
       if (result.success) {
         setTables(result.data);
       }
     } catch (error) {
       console.error('Failed to load tables:', error);
+      addNotification('Failed to load tables', 'error');
     } finally {
       setIsLoadingPhotos(false);
     }
@@ -137,25 +141,31 @@ function App() {
   const handleBooking = (e) => {
     e.preventDefault();
     if (!selectedTable || !bookingData.date || !bookingData.time) {
-      alert('Please fill in all required fields');
+      addNotification('Please fill in all required fields', 'error');
       return;
     }
     
-    alert(`Table booked successfully!\n\nTable: ${selectedTable.name}\nDate: ${bookingData.date}\nTime: ${bookingData.time}\nGuests: ${bookingData.guests}`);
+    // Create booking via API
+    const bookingPayload = {
+      restaurantId: parseInt(id),
+      tableId: selectedTable.id,
+      date: bookingData.date,
+      time: bookingData.time,
+      guests: bookingData.guests,
+      specialRequests: bookingData.specialRequests
+    };
 
+    addBooking(bookingPayload)
+      .then(() => {
+        addNotification('Table booked successfully!', 'success');
+        navigate('/dashboard');
+      })
+      .catch((error) => {
+        addNotification(error.message || 'Failed to book table', 'error');
+      });
 
     
     // Reset form
-    setShowTableCards(true);
-    setShowImageView(false);
-    setSelectedTable(null);
-    setCurrentImageIndex(0);
-    setBookingData({
-      date: '',
-      time: '',
-      guests: 2,
-      specialRequests: ''
-    });
   };
 
   // Choose Your Table View
@@ -193,14 +203,69 @@ function App() {
           </div>
           
           <div className="flex overflow-x-auto gap-4 px-2 snap-x snap-mandatory scroll-smooth">
-            {/* Tables will be displayed here when added by admin */}
+            {tables.map((table) => {
+              const tableData = getTableDisplayData(table);
+              return (
+                <div
+                  key={table.id}
+                  className="flex-none w-80 bg-white rounded-2xl shadow-lg border overflow-hidden snap-center cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl"
+                  onClick={() => handleTableSelect(tableData)}
+                >
+                  <div className="relative h-48">
+                    <img
+                      src={tableData.image}
+                      alt={tableData.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                      <span className="text-sm font-semibold text-gray-900">Table #{tableData.table_number}</span>
+                    </div>
+                    <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-full">
+                      <span className="text-sm font-medium">{tableData.capacity} guests</span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{tableData.name}</h3>
+                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">{tableData.description}</p>
+                    
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-green-600 font-semibold">{tableData.minSpend} min spend</span>
+                      <div className="flex items-center space-x-1">
+                        <Users className="w-4 h-4 text-amber-600" />
+                        <span className="text-sm text-gray-700">Up to {tableData.capacity}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {tableData.features.slice(0, 2).map((feature, index) => (
+                        <span key={index} className="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full">
+                          {feature}
+                        </span>
+                      ))}
+                      {tableData.features.length > 2 && (
+                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
+                          +{tableData.features.length - 2} more
+                        </span>
+                      )}
+                    </div>
+                    
+                    <button className="w-full bg-gradient-to-r from-amber-600 to-orange-600 text-white py-2 px-4 rounded-lg hover:from-amber-700 hover:to-orange-700 transition-all duration-300 font-medium">
+                      Select Table
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
           
-          <div className="text-center py-12">
+          {tables.length === 0 && (
+            <div className="text-center py-12">
             <Eye className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No tables available</h3>
             <p className="text-gray-500">Tables will appear here when the restaurant admin adds them.</p>
-          </div>
+            </div>
+          )}
         </div>
       </div>
     );

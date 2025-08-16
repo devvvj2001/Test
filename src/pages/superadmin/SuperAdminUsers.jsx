@@ -119,7 +119,11 @@ const SuperAdminUsers = () => {
 
   const toggleUserStatus = async (userId, userType, currentStatus) => {
     try {
-      const response = await apiCall(`/super-admin/users/${userId}/status`, {
+      const endpoint = userType === 'customers' ? 
+        `/super-admin/customers/${userId}/status` : 
+        `/super-admin/admins/${userId}/status`;
+        
+      const response = await apiCall(endpoint, {
         method: 'PUT',
         body: { is_active: !currentStatus }
       });

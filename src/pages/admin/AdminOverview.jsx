@@ -44,7 +44,7 @@ const AdminOverview = () => {
       // Load recent tables
       const tablesResponse = await apiCall('/admin/tables');
       if (tablesResponse.success) {
-        setRecentTables([]); // Start with empty tables
+        setRecentTables(tablesResponse.data);
       }
     } catch (error) {
       addNotification('Failed to load dashboard data', 'error');

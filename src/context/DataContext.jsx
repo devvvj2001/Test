@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import { useAuth } from './AuthContext';
 
 const DataContext = createContext();
 
@@ -131,6 +132,7 @@ const mockMenuItems = {
 };
 
 export const DataProvider = ({ children }) => {
+  const { apiCall } = useAuth();
   const [restaurants, setRestaurants] = useState([]);
   const [orders, setOrders] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -141,8 +143,7 @@ export const DataProvider = ({ children }) => {
   const loadRestaurants = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/restaurants');
-      const result = await response.json();
+      const result = await apiCall('/restaurants');
       if (result.success) {
         setRestaurants(result.data);
       }
@@ -153,6 +154,29 @@ export const DataProvider = ({ children }) => {
     }
   };
 
+  // Load user orders
+  const loadOrders = async () => {
+    try {
+      const result = await apiCall('/orders');
+      if (result.success) {
+        setOrders(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to load orders:', error);
+    }
+  };
+
+  // Load user bookings
+  const loadBookings = async () => {
+    try {
+      const result = await apiCall('/bookings');
+      if (result.success) {
+        setBookings(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to load bookings:', error);
+    }
+  };
   // Load restaurants on mount
   React.useEffect(() => {
     loadRestaurants();
@@ -165,16 +189,52 @@ export const DataProvider = ({ children }) => {
     ));
   };
 
-  const addMenuItem = (restaurantId, menuItem) => {
-    // Implementation for adding menu items
+  const addMenuItem = async (restaurantId, menuItem) => {
+    try {
+      const result = await apiCall('/admin/menu', {
+        method: 'POST',
+        body: menuItem
+      });
+      if (result.success) {
+        // Refresh restaurants to update menu
+        await loadRestaurants();
+        return result;
+      }
+    } catch (error) {
+      console.error('Failed to add menu item:', error);
+      throw error;
+    }
   };
 
-  const updateMenuItem = (restaurantId, itemId, updates) => {
-    // Implementation for updating menu items
+  const updateMenuItem = async (restaurantId, itemId, updates) => {
+    try {
+      const result = await apiCall(`/admin/menu/${itemId}`, {
+        method: 'PUT',
+        body: updates
+      });
+      if (result.success) {
+        await loadRestaurants();
+        return result;
+      }
+    } catch (error) {
+      console.error('Failed to update menu item:', error);
+      throw error;
+    }
   };
 
-  const deleteMenuItem = (restaurantId, itemId) => {
-    // Implementation for deleting menu items
+  const deleteMenuItem = async (restaurantId, itemId) => {
+    try {
+      const result = await apiCall(`/admin/menu/${itemId}`, {
+        method: 'DELETE'
+      });
+      if (result.success) {
+        await loadRestaurants();
+        return result;
+      }
+    } catch (error) {
+      console.error('Failed to delete menu item:', error);
+      throw error;
+    }
   };
 
   const addToCart = (item, restaurantId) => {
@@ -189,10 +249,38 @@ export const DataProvider = ({ children }) => {
     setCart([]);
   };
 
-  const addBooking = (booking) => {
-    setBookings(prev => [...prev, { ...booking, id: Date.now(), status: 'confirmed' }]);
+  const addBooking = async (bookingData) => {
+    try {
+      const result = await apiCall('/bookings', {
+        method: 'POST',
+        body: bookingData
+      });
+      if (result.success) {
+        await loadBookings();
+        await loadRestaurants(); // Refresh to update table status
+        return result;
+      }
+    } catch (error) {
+      console.error('Failed to add booking:', error);
+      throw error;
+    }
   };
 
+  const createOrder = async (orderData) => {
+    try {
+      const result = await apiCall('/orders', {
+        method: 'POST',
+        body: orderData
+      });
+      if (result.success) {
+        await loadOrders();
+        return result;
+      }
+    } catch (error) {
+      console.error('Failed to create order:', error);
+      throw error;
+    }
+  };
   const updateTableStatus = (restaurantId, tableId, status) => {
     setRestaurants(prev => prev.map(restaurant => {
       if (restaurant.id === restaurantId) {
@@ -207,14 +295,25 @@ export const DataProvider = ({ children }) => {
     }));
   };
 
-  const getMenuItems = (restaurantId) => {
-    return mockMenuItems[restaurantId] || [];
+  const getMenuItems = async (restaurantId) => {
+    try {
+      const result = await apiCall(`/restaurants/${restaurantId}/menu`);
+      if (result.success) {
+        return result.data;
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to get menu items:', error);
+      return [];
+    }
   };
 
   const value = {
     restaurants,
     isLoading,
     loadRestaurants,
+    loadOrders,
+    loadBookings,
     orders,
     bookings,
     cart,
@@ -226,6 +325,7 @@ export const DataProvider = ({ children }) => {
     removeFromCart,
     clearCart,
     addBooking,
+    createOrder,
     updateTableStatus,
     getMenuItems
   };
