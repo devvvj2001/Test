@@ -1276,7 +1276,49 @@ router.put('/orders/:id/status', [
             VALUES (?, ?, ?, ?)
         `, [id, status, req.user.id, `Status changed from ${existingOrder.current_status} to ${status}`]);
 
+        // Get order details for notification
+        const orderDetails = await db.get(`
+            SELECT
+                o.id, o.user_id, o.order_type, o.total_amount,
+                r.name as restaurant_name
+            FROM orders o
+            JOIN restaurants r ON o.restaurant_id = r.id
+            WHERE o.id = ?
+        `, [id]);
+
+        // Create notification for the customer
+        const notificationMessages = {
+            pending: `Your order at ${orderDetails.restaurant_name} is pending confirmation.`,
+            confirmed: `Your order at ${orderDetails.restaurant_name} has been confirmed and is being prepared.`,
+            preparing: `Your order at ${orderDetails.restaurant_name} is being prepared.`,
+            ready: `Your order at ${orderDetails.restaurant_name} is ready for ${orderDetails.order_type === 'pickup' ? 'pickup' : orderDetails.order_type === 'delivery' ? 'delivery' : 'serving'}!`,
+            completed: `Your order at ${orderDetails.restaurant_name} has been completed. Thank you for your order!`,
+            cancelled: `Your order at ${orderDetails.restaurant_name} has been cancelled.`
+        };
+
+        const notificationTitles = {
+            pending: 'Order Pending',
+            confirmed: 'Order Confirmed',
+            preparing: 'Order Being Prepared',
+            ready: 'Order Ready',
+            completed: 'Order Completed',
+            cancelled: 'Order Cancelled'
+        };
+
+        await db.run(`
+            INSERT INTO notifications (user_id, restaurant_id, order_id, title, message, type, is_read)
+            VALUES (?, ?, ?, ?, ?, ?, 0)
+        `, [
+            orderDetails.user_id,
+            restaurantId,
+            id,
+            notificationTitles[status] || 'Order Status Update',
+            notificationMessages[status] || `Your order status has been updated to ${status}.`,
+            status === 'ready' || status === 'completed' ? 'success' : status === 'cancelled' ? 'error' : 'info'
+        ]);
+
         console.log(`✅ Order status updated: Order ${id} changed to ${status} by Admin ${req.user.id}`);
+        console.log(`✅ Notification sent to user ${orderDetails.user_id}`);
 
         res.status(200).json({
             success: true,
@@ -1419,7 +1461,7 @@ router.put('/bookings/:id/status', [
             pending: 'Booking Pending'
         };
 
-        await db.run(`
+        const notificationResult = await db.run(`
             INSERT INTO notifications (user_id, restaurant_id, booking_id, title, message, type, is_read)
             VALUES (?, ?, ?, ?, ?, ?, 0)
         `, [
@@ -1432,7 +1474,8 @@ router.put('/bookings/:id/status', [
         ]);
 
         console.log(`✅ Booking status updated: Booking ${id} changed to ${status} by Admin ${req.user.id}`);
-        console.log(`✅ Notification sent to user ${existingBooking.user_id}`);
+        console.log(`✅ Notification created with ID ${notificationResult.id} for user ${existingBooking.user_id}`);
+        console.log(`✅ Notification details: Title="${notificationTitles[status]}", Message="${notificationMessages[status]}"`);
 
         res.status(200).json({
             success: true,

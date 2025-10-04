@@ -239,10 +239,22 @@ router.get('/notifications/unread-count', authenticateToken, authorizeRole(['cus
     try {
         const userId = req.user.id;
 
+        console.log(`📊 Fetching unread count for user ${userId}`);
+
         const result = await db.get(
             'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0',
             [userId]
         );
+
+        console.log(`📊 Unread count for user ${userId}: ${result.count || 0}`);
+
+        // Also check total notifications for this user
+        const totalResult = await db.get(
+            'SELECT COUNT(*) as count FROM notifications WHERE user_id = ?',
+            [userId]
+        );
+
+        console.log(`📊 Total notifications for user ${userId}: ${totalResult.count || 0}`);
 
         res.status(200).json({
             success: true,
@@ -291,14 +303,18 @@ router.get('/notifications', authenticateToken, authorizeRole(['customer']), asy
         const userId = req.user.id;
         const { limit = 50, unread_only } = req.query;
 
+        console.log(`📩 Fetching notifications for user ${userId}, limit: ${limit}, unread_only: ${unread_only}`);
+
         let query = `
             SELECT
                 n.id, n.title, n.message, n.type, n.is_read, n.created_at,
                 r.name as restaurant_name,
-                b.date as booking_date, b.time as booking_time
+                b.date as booking_date, b.time as booking_time,
+                o.id as order_id, o.order_type
             FROM notifications n
             LEFT JOIN restaurants r ON n.restaurant_id = r.id
             LEFT JOIN bookings b ON n.booking_id = b.id
+            LEFT JOIN orders o ON n.order_id = o.id
             WHERE n.user_id = ?
         `;
 
@@ -311,7 +327,15 @@ router.get('/notifications', authenticateToken, authorizeRole(['customer']), asy
         query += ' ORDER BY n.created_at DESC LIMIT ?';
         queryParams.push(parseInt(limit));
 
+        console.log(`📩 Query: ${query}`);
+        console.log(`📩 Params: ${JSON.stringify(queryParams)}`);
+
         const notifications = await db.all(query, queryParams);
+
+        console.log(`📩 Found ${notifications.length} notifications for user ${userId}`);
+        if (notifications.length > 0) {
+            console.log(`📩 First notification:`, JSON.stringify(notifications[0], null, 2));
+        }
 
         res.status(200).json({
             success: true,

@@ -43,12 +43,20 @@ const NotificationBell = () => {
     setIsLoading(true);
 
     try {
+      console.log('🔔 Loading notifications...');
       const response = await apiCache.dedupe('/bookings/notifications', { limit: 10 }, async () => {
         return await apiCall('/bookings/notifications?limit=10');
       });
 
+      console.log('🔔 Notifications response:', response);
+      console.log('🔔 Notifications data:', response?.data);
+      console.log('🔔 Number of notifications:', response?.data?.length || 0);
+
       if (response && response.success) {
         setNotifications(response.data || []);
+        console.log('🔔 Set notifications state:', response.data || []);
+      } else {
+        console.error('🔔 Response not successful:', response);
       }
     } catch (error) {
       console.error('Failed to load notifications:', error);
@@ -64,12 +72,17 @@ const NotificationBell = () => {
     loadingCountRef.current = true;
 
     try {
+      console.log('📊 Loading unread count...');
       const response = await apiCache.dedupe('/bookings/notifications/unread-count', {}, async () => {
         return await apiCall('/bookings/notifications/unread-count');
       });
 
+      console.log('📊 Unread count response:', response);
+      console.log('📊 Unread count:', response?.data?.count || 0);
+
       if (response && response.success) {
         setUnreadCount(response.data.count || 0);
+        console.log('📊 Set unread count state:', response.data.count || 0);
       }
     } catch (error) {
       console.error('Failed to load unread count:', error);
@@ -111,6 +124,7 @@ const NotificationBell = () => {
   const handleBellClick = () => {
     setIsOpen(!isOpen);
     if (!isOpen) {
+      // Invalidate all notification-related cache entries
       apiCache.invalidatePattern('/bookings/notifications');
       loadNotifications();
     }

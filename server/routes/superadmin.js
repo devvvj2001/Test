@@ -548,34 +548,34 @@ router.post('/notifications/send', [
         const { title, message, type, recipients } = req.body;
 
         // Get target users based on recipients
+        // Note: Notifications table references login_users, which only contains customers
+        // Admins and superadmins are in the users table and cannot receive notifications through this system
         let targetUsers = [];
 
         if (recipients === 'all' || recipients === 'customers') {
-            // Get all customer users
+            // Get all customer users from login_users table
             const customers = await db.all(`
                 SELECT id FROM login_users WHERE role = 'customer' AND is_active = 1
             `);
             targetUsers = targetUsers.concat(customers.map(u => u.id));
         }
 
-        if (recipients === 'all' || recipients === 'admins') {
-            // Get all admin users
-            const admins = await db.all(`
-                SELECT id FROM login_users WHERE role = 'admin' AND is_active = 1
-            `);
-            targetUsers = targetUsers.concat(admins.map(u => u.id));
-        }
-
-        if (recipients === 'superadmins') {
-            // Get all superadmin users
-            const superadmins = await db.all(`
-                SELECT id FROM users WHERE role = 'superadmin' AND is_active = 1
-            `);
-            targetUsers = targetUsers.concat(superadmins.map(u => u.id));
+        if (recipients === 'admins' || recipients === 'superadmins') {
+            // Admins and superadmins cannot receive notifications because they are in the users table,
+            // not login_users table. The notifications foreign key references login_users.
+            // This is a known limitation of the current system design.
+            console.log(`⚠️  Warning: Cannot send notifications to ${recipients} - they are not in the login_users table`);
         }
 
         // Remove duplicates
         targetUsers = [...new Set(targetUsers)];
+
+        if (targetUsers.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No valid recipients found. Only customers can receive notifications in the current system.'
+            });
+        }
 
         // Create notifications for all target users
         for (const userId of targetUsers) {
@@ -589,10 +589,10 @@ router.post('/notifications/send', [
 
         res.status(201).json({
             success: true,
-            message: `Notification sent to ${targetUsers.length} users`,
+            message: `Notification sent to ${targetUsers.length} ${recipients === 'all' ? 'customer' : recipients}(s)`,
             data: {
                 recipients_count: targetUsers.length,
-                recipients,
+                recipients: recipients === 'all' || recipients === 'customers' ? 'customers' : recipients,
                 title
             }
         });
