@@ -528,4 +528,115 @@ router.get('/analytics', async (req, res) => {
     }
 });
 
+// POST /api/super-admin/notifications/send - Send notification to users
+router.post('/notifications/send', [
+    body('title').trim().isLength({ min: 1, max: 200 }).withMessage('Title is required and must be less than 200 characters'),
+    body('message').trim().isLength({ min: 1, max: 1000 }).withMessage('Message is required and must be less than 1000 characters'),
+    body('type').isIn(['info', 'success', 'warning', 'error']).withMessage('Invalid notification type'),
+    body('recipients').isIn(['all', 'customers', 'admins', 'superadmins']).withMessage('Invalid recipients')
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation failed',
+                errors: errors.array()
+            });
+        }
+
+        const { title, message, type, recipients } = req.body;
+
+        // Get target users based on recipients
+        let targetUsers = [];
+
+        if (recipients === 'all' || recipients === 'customers') {
+            // Get all customer users
+            const customers = await db.all(`
+                SELECT id FROM login_users WHERE role = 'customer' AND is_active = 1
+            `);
+            targetUsers = targetUsers.concat(customers.map(u => u.id));
+        }
+
+        if (recipients === 'all' || recipients === 'admins') {
+            // Get all admin users
+            const admins = await db.all(`
+                SELECT id FROM login_users WHERE role = 'admin' AND is_active = 1
+            `);
+            targetUsers = targetUsers.concat(admins.map(u => u.id));
+        }
+
+        if (recipients === 'superadmins') {
+            // Get all superadmin users
+            const superadmins = await db.all(`
+                SELECT id FROM users WHERE role = 'superadmin' AND is_active = 1
+            `);
+            targetUsers = targetUsers.concat(superadmins.map(u => u.id));
+        }
+
+        // Remove duplicates
+        targetUsers = [...new Set(targetUsers)];
+
+        // Create notifications for all target users
+        for (const userId of targetUsers) {
+            await db.run(`
+                INSERT INTO notifications (user_id, title, message, type, is_read)
+                VALUES (?, ?, ?, ?, 0)
+            `, [userId, title, message, type]);
+        }
+
+        console.log(`✅ Notification sent to ${targetUsers.length} users by Super Admin ${req.user.id}`);
+
+        res.status(201).json({
+            success: true,
+            message: `Notification sent to ${targetUsers.length} users`,
+            data: {
+                recipients_count: targetUsers.length,
+                recipients,
+                title
+            }
+        });
+
+    } catch (error) {
+        console.error('Send notification error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while sending notification'
+        });
+    }
+});
+
+// GET /api/super-admin/notifications - Get super admin notifications
+router.get('/notifications', async (req, res) => {
+    try {
+        const { limit = 50 } = req.query;
+
+        // Get notifications sent by super admins (system notifications)
+        const notifications = await db.all(`
+            SELECT
+                n.id, n.title, n.message, n.type, n.created_at,
+                COUNT(DISTINCT n.user_id) as recipient_count
+            FROM notifications n
+            WHERE n.restaurant_id IS NULL AND n.booking_id IS NULL AND n.order_id IS NULL
+            GROUP BY n.title, n.message, n.type, n.created_at
+            ORDER BY n.created_at DESC
+            LIMIT ?
+        `, [parseInt(limit)]);
+
+        res.status(200).json({
+            success: true,
+            message: 'Notifications retrieved successfully',
+            data: notifications || []
+        });
+
+    } catch (error) {
+        console.error('Get super admin notifications error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while fetching notifications',
+            data: []
+        });
+    }
+});
+
 module.exports = router;
