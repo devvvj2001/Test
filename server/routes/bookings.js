@@ -109,13 +109,167 @@ router.post('/', authenticateToken, authorizeRole(['customer']), bookingValidati
     }
 });
 
+// GET /api/bookings/notifications/unread-count - Get unread notification count
+router.get('/notifications/unread-count', authenticateToken, authorizeRole(['customer']), async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        console.log(`📊 Fetching unread count for user ${userId}`);
+
+        const result = await db.get(
+            'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0',
+            [userId]
+        );
+
+        console.log(`📊 Unread count for user ${userId}: ${result.count || 0}`);
+
+        const totalResult = await db.get(
+            'SELECT COUNT(*) as count FROM notifications WHERE user_id = ?',
+            [userId]
+        );
+
+        console.log(`📊 Total notifications for user ${userId}: ${totalResult.count || 0}`);
+
+        res.status(200).json({
+            success: true,
+            message: 'Unread notification count retrieved',
+            data: {
+                count: result.count || 0
+            }
+        });
+
+    } catch (error) {
+        console.error('Get unread count error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while fetching unread count'
+        });
+    }
+});
+
+// GET /api/bookings/notifications - Get customer notifications
+router.get('/notifications', authenticateToken, authorizeRole(['customer']), async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { limit = 50, unread_only } = req.query;
+
+        console.log(`📩 Fetching notifications for user ${userId}, limit: ${limit}, unread_only: ${unread_only}`);
+
+        let query = `
+            SELECT
+                n.id, n.title, n.message, n.type, n.is_read, n.created_at,
+                r.name as restaurant_name,
+                b.date as booking_date, b.time as booking_time,
+                o.id as order_id, o.order_type
+            FROM notifications n
+            LEFT JOIN restaurants r ON n.restaurant_id = r.id
+            LEFT JOIN bookings b ON n.booking_id = b.id
+            LEFT JOIN orders o ON n.order_id = o.id
+            WHERE n.user_id = ?
+        `;
+
+        const queryParams = [userId];
+
+        if (unread_only === 'true') {
+            query += ' AND n.is_read = 0';
+        }
+
+        query += ' ORDER BY n.created_at DESC LIMIT ?';
+        queryParams.push(parseInt(limit));
+
+        console.log(`�� Query: ${query}`);
+        console.log(`📩 Params: ${JSON.stringify(queryParams)}`);
+
+        const notifications = await db.all(query, queryParams);
+
+        console.log(`📩 Found ${notifications.length} notifications for user ${userId}`);
+        if (notifications.length > 0) {
+            console.log(`📩 First notification:`, JSON.stringify(notifications[0], null, 2));
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Notifications retrieved successfully',
+            data: notifications
+        });
+
+    } catch (error) {
+        console.error('Get notifications error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while fetching notifications'
+        });
+    }
+});
+
+// PUT /api/bookings/notifications/mark-all-read - Mark all notifications as read
+router.put('/notifications/mark-all-read', authenticateToken, authorizeRole(['customer']), async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        await db.run(
+            'UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0',
+            [userId]
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'All notifications marked as read'
+        });
+
+    } catch (error) {
+        console.error('Mark all notifications as read error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while marking all notifications as read'
+        });
+    }
+});
+
+// PUT /api/bookings/notifications/:id/read - Mark notification as read
+router.put('/notifications/:id/read', authenticateToken, authorizeRole(['customer']), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        const notification = await db.get(
+            'SELECT id FROM notifications WHERE id = ? AND user_id = ?',
+            [id, userId]
+        );
+
+        if (!notification) {
+            return res.status(404).json({
+                success: false,
+                message: 'Notification not found'
+            });
+        }
+
+        await db.run(
+            'UPDATE notifications SET is_read = 1 WHERE id = ?',
+            [id]
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Notification marked as read'
+        });
+
+    } catch (error) {
+        console.error('Mark notification as read error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while marking notification as read'
+        });
+    }
+});
+
 // GET /api/bookings - Get user's bookings
 router.get('/', authenticateToken, authorizeRole(['customer']), async (req, res) => {
     try {
         const userId = req.user.id;
 
         const bookings = await db.all(`
-            SELECT 
+            SELECT
                 b.id, b.date, b.time, b.guests, b.special_requests, b.status, b.created_at,
                 r.name as restaurant_name, r.address as restaurant_address, r.phone as restaurant_phone,
                 rt.table_number, rt.capacity as table_capacity
@@ -230,163 +384,6 @@ router.put('/:id/cancel', authenticateToken, authorizeRole(['customer']), async 
         res.status(500).json({
             success: false,
             message: 'Internal server error while cancelling booking'
-        });
-    }
-});
-
-// GET /api/bookings/notifications/unread-count - Get unread notification count
-router.get('/notifications/unread-count', authenticateToken, authorizeRole(['customer']), async (req, res) => {
-    try {
-        const userId = req.user.id;
-
-        console.log(`📊 Fetching unread count for user ${userId}`);
-
-        const result = await db.get(
-            'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0',
-            [userId]
-        );
-
-        console.log(`📊 Unread count for user ${userId}: ${result.count || 0}`);
-
-        // Also check total notifications for this user
-        const totalResult = await db.get(
-            'SELECT COUNT(*) as count FROM notifications WHERE user_id = ?',
-            [userId]
-        );
-
-        console.log(`📊 Total notifications for user ${userId}: ${totalResult.count || 0}`);
-
-        res.status(200).json({
-            success: true,
-            message: 'Unread notification count retrieved',
-            data: {
-                count: result.count || 0
-            }
-        });
-
-    } catch (error) {
-        console.error('Get unread count error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error while fetching unread count'
-        });
-    }
-});
-
-// PUT /api/bookings/notifications/mark-all-read - Mark all notifications as read
-router.put('/notifications/mark-all-read', authenticateToken, authorizeRole(['customer']), async (req, res) => {
-    try {
-        const userId = req.user.id;
-
-        await db.run(
-            'UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0',
-            [userId]
-        );
-
-        res.status(200).json({
-            success: true,
-            message: 'All notifications marked as read'
-        });
-
-    } catch (error) {
-        console.error('Mark all notifications as read error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error while marking all notifications as read'
-        });
-    }
-});
-
-// GET /api/bookings/notifications - Get customer notifications
-router.get('/notifications', authenticateToken, authorizeRole(['customer']), async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const { limit = 50, unread_only } = req.query;
-
-        console.log(`📩 Fetching notifications for user ${userId}, limit: ${limit}, unread_only: ${unread_only}`);
-
-        let query = `
-            SELECT
-                n.id, n.title, n.message, n.type, n.is_read, n.created_at,
-                r.name as restaurant_name,
-                b.date as booking_date, b.time as booking_time,
-                o.id as order_id, o.order_type
-            FROM notifications n
-            LEFT JOIN restaurants r ON n.restaurant_id = r.id
-            LEFT JOIN bookings b ON n.booking_id = b.id
-            LEFT JOIN orders o ON n.order_id = o.id
-            WHERE n.user_id = ?
-        `;
-
-        const queryParams = [userId];
-
-        if (unread_only === 'true') {
-            query += ' AND n.is_read = 0';
-        }
-
-        query += ' ORDER BY n.created_at DESC LIMIT ?';
-        queryParams.push(parseInt(limit));
-
-        console.log(`📩 Query: ${query}`);
-        console.log(`📩 Params: ${JSON.stringify(queryParams)}`);
-
-        const notifications = await db.all(query, queryParams);
-
-        console.log(`📩 Found ${notifications.length} notifications for user ${userId}`);
-        if (notifications.length > 0) {
-            console.log(`📩 First notification:`, JSON.stringify(notifications[0], null, 2));
-        }
-
-        res.status(200).json({
-            success: true,
-            message: 'Notifications retrieved successfully',
-            data: notifications
-        });
-
-    } catch (error) {
-        console.error('Get notifications error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error while fetching notifications'
-        });
-    }
-});
-
-// PUT /api/bookings/notifications/:id/read - Mark notification as read
-router.put('/notifications/:id/read', authenticateToken, authorizeRole(['customer']), async (req, res) => {
-    try {
-        const { id } = req.params;
-        const userId = req.user.id;
-
-        // Verify notification belongs to user
-        const notification = await db.get(
-            'SELECT id FROM notifications WHERE id = ? AND user_id = ?',
-            [id, userId]
-        );
-
-        if (!notification) {
-            return res.status(404).json({
-                success: false,
-                message: 'Notification not found'
-            });
-        }
-
-        // Mark as read
-        await db.run(
-            'UPDATE notifications SET is_read = 1 WHERE id = ?',
-            [id]
-        );
-
-        res.status(200).json({
-            success: true,
-            message: 'Notification marked as read'
-        });
-
-    } catch (error) {
-        console.error('Mark notification as read error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error while marking notification as read'
         });
     }
 });
