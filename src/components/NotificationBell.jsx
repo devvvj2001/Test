@@ -15,12 +15,11 @@ const NotificationBell = () => {
 
   useEffect(() => {
     loadNotifications();
-    loadUnreadCount();
 
     const interval = setInterval(() => {
       apiCache.invalidatePattern('/bookings/notifications');
-      loadUnreadCount();
-    }, 60000); // Check every 60 seconds
+      loadNotifications();
+    }, 120000);
 
     return () => clearInterval(interval);
   }, []);
@@ -43,81 +42,74 @@ const NotificationBell = () => {
     setIsLoading(true);
 
     try {
-      console.log('🔔 Loading notifications...');
+      console.log('🔔 [Optimized] Loading notifications and counts...');
       const response = await apiCache.dedupe('/bookings/notifications', { limit: 10 }, async () => {
         return await apiCall('/bookings/notifications?limit=10');
       });
 
-      console.log('🔔 Notifications response:', response);
-      console.log('🔔 Notifications data:', response?.data);
-      console.log('🔔 Number of notifications:', response?.data?.length || 0);
+      console.log('🔔 [Optimized] Consolidated response:', response);
 
-      if (response && response.success) {
-        setNotifications(response.data || []);
-        console.log('🔔 Set notifications state:', response.data || []);
+      if (response && response.success && response.data) {
+        const { notifications: notificationsList, unread_count, total_count } = response.data;
+
+        setNotifications(notificationsList || []);
+        setUnreadCount(unread_count || 0);
+
+        console.log(`🔔 [Optimized] Loaded ${notificationsList?.length || 0} notifications, ${unread_count} unread, ${total_count} total`);
       } else {
         console.error('🔔 Response not successful:', response);
+        setNotifications([]);
+        setUnreadCount(0);
       }
     } catch (error) {
       console.error('Failed to load notifications:', error);
+      setNotifications([]);
+      setUnreadCount(0);
     } finally {
       setIsLoading(false);
       loadingNotificationsRef.current = false;
     }
   };
 
-  const loadUnreadCount = async () => {
-    if (loadingCountRef.current) return;
-
-    loadingCountRef.current = true;
-
-    try {
-      console.log('📊 Loading unread count...');
-      const response = await apiCache.dedupe('/bookings/notifications/unread-count', {}, async () => {
-        return await apiCall('/bookings/notifications/unread-count');
-      });
-
-      console.log('📊 Unread count response:', response);
-      console.log('📊 Unread count:', response?.data?.count || 0);
-
-      if (response && response.success) {
-        setUnreadCount(response.data.count || 0);
-        console.log('📊 Set unread count state:', response.data.count || 0);
-      }
-    } catch (error) {
-      console.error('Failed to load unread count:', error);
-    } finally {
-      loadingCountRef.current = false;
-    }
-  };
-
   const markAsRead = async (notificationId) => {
-    try {
-      await apiCall(`/bookings/notifications/${notificationId}/read`, {
-        method: 'PUT'
-      });
+    const previousUnreadCount = unreadCount;
+    const previousNotifications = notifications;
 
+    try {
       setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, is_read: 1 } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
+
+      await apiCall(`/bookings/notifications/${notificationId}/read`, {
+        method: 'PUT'
+      });
+
       apiCache.invalidatePattern('/bookings/notifications');
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
+      setNotifications(previousNotifications);
+      setUnreadCount(previousUnreadCount);
     }
   };
 
   const markAllAsRead = async () => {
+    const previousUnreadCount = unreadCount;
+    const previousNotifications = notifications;
+
     try {
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
+      setUnreadCount(0);
+
       await apiCall('/bookings/notifications/mark-all-read', {
         method: 'PUT'
       });
 
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
-      setUnreadCount(0);
       apiCache.invalidatePattern('/bookings/notifications');
     } catch (error) {
       console.error('Failed to mark all as read:', error);
+      setNotifications(previousNotifications);
+      setUnreadCount(previousUnreadCount);
     }
   };
 
@@ -230,11 +222,46 @@ const NotificationBell = () => {
                       )}
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
+
                     {notification.restaurant_name && (
                       <p className="text-xs text-gray-500 mb-1">
-                        Restaurant: {notification.restaurant_name}
+                        <span className="font-medium">Restaurant:</span> {notification.restaurant_name}
                       </p>
                     )}
+
+                    {notification.booking_details && (
+                      <div className="text-xs text-gray-500 mb-1 space-y-0.5">
+                        {notification.booking_details.date && notification.booking_details.time && (
+                          <p>
+                            <span className="font-medium">Booking:</span> {notification.booking_details.date} at {notification.booking_details.time}
+                          </p>
+                        )}
+                        {notification.booking_details.table_number && (
+                          <p>
+                            <span className="font-medium">Table:</span> {notification.booking_details.table_number}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {notification.order_details && (
+                      <div className="text-xs text-gray-500 mb-1 space-y-0.5">
+                        <p>
+                          <span className="font-medium">Order Type:</span> {notification.order_details.order_type}
+                        </p>
+                        {notification.order_details.status && (
+                          <p>
+                            <span className="font-medium">Status:</span> {notification.order_details.status}
+                          </p>
+                        )}
+                        {notification.order_details.total_amount && (
+                          <p>
+                            <span className="font-medium">Total:</span> ${notification.order_details.total_amount}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs text-gray-400">{formatDate(notification.created_at)}</span>
                       <span className={`text-xs px-2 py-1 rounded-full ${

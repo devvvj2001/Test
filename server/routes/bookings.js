@@ -109,26 +109,127 @@ router.post('/', authenticateToken, authorizeRole(['customer']), bookingValidati
     }
 });
 
-// GET /api/bookings/notifications/unread-count - Get unread notification count
+router.get('/notifications', authenticateToken, authorizeRole(['customer']), async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { limit = 50, unread_only } = req.query;
+        const limitInt = Math.min(parseInt(limit) || 50, 100);
+
+        console.log(`[Consolidated] Fetching notifications for user ${userId}, limit: ${limitInt}, unread_only: ${unread_only}`);
+
+        let notificationQuery = `
+            SELECT
+                n.id,
+                n.title,
+                n.message,
+                n.type,
+                n.is_read,
+                n.created_at,
+                r.name as restaurant_name,
+                r.address as restaurant_address,
+                b.id as booking_id,
+                b.date as booking_date,
+                b.time as booking_time,
+                rt.table_number,
+                o.id as order_id,
+                o.order_type,
+                o.status as order_status,
+                o.total_amount as order_total
+            FROM notifications n
+            LEFT JOIN restaurants r ON n.restaurant_id = r.id
+            LEFT JOIN bookings b ON n.booking_id = b.id
+            LEFT JOIN restaurant_tables rt ON b.table_id = rt.id
+            LEFT JOIN orders o ON n.order_id = o.id
+            WHERE n.user_id = ?
+        `;
+
+        const notificationParams = [userId];
+
+        if (unread_only === 'true') {
+            notificationQuery += ' AND n.is_read = 0';
+        }
+
+        notificationQuery += ' ORDER BY n.created_at DESC LIMIT ?';
+        notificationParams.push(limitInt);
+
+        const unreadCountQuery = 'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0';
+        const totalCountQuery = 'SELECT COUNT(*) as count FROM notifications WHERE user_id = ?';
+
+        const [notifications, unreadResult, totalResult] = await Promise.all([
+            db.all(notificationQuery, notificationParams),
+            db.get(unreadCountQuery, [userId]),
+            db.get(totalCountQuery, [userId])
+        ]);
+
+        const unreadCount = unreadResult?.count || 0;
+        const totalCount = totalResult?.count || 0;
+
+        const enrichedNotifications = notifications.map(notification => {
+            const enriched = {
+                id: notification.id,
+                title: notification.title,
+                message: notification.message,
+                type: notification.type,
+                is_read: notification.is_read,
+                created_at: notification.created_at,
+                restaurant_name: notification.restaurant_name || null,
+                restaurant_address: notification.restaurant_address || null
+            };
+
+            if (notification.booking_id) {
+                enriched.booking_details = {
+                    booking_id: notification.booking_id,
+                    date: notification.booking_date,
+                    time: notification.booking_time,
+                    table_number: notification.table_number
+                };
+            }
+
+            if (notification.order_id) {
+                enriched.order_details = {
+                    order_id: notification.order_id,
+                    order_type: notification.order_type,
+                    status: notification.order_status,
+                    total_amount: notification.order_total
+                };
+            }
+
+            return enriched;
+        });
+
+        console.log(`[Consolidated] User ${userId}: ${enrichedNotifications.length} notifications, ${unreadCount} unread, ${totalCount} total`);
+
+        res.status(200).json({
+            success: true,
+            message: 'Notifications retrieved successfully',
+            data: {
+                notifications: enrichedNotifications,
+                unread_count: unreadCount,
+                total_count: totalCount
+            }
+        });
+
+    } catch (error) {
+        console.error('Get notifications error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while fetching notifications'
+        });
+    }
+});
+
 router.get('/notifications/unread-count', authenticateToken, authorizeRole(['customer']), async (req, res) => {
     try {
         const userId = req.user.id;
 
-        console.log(`📊 Fetching unread count for user ${userId}`);
+        console.log(`[Legacy] Fetching unread count for user ${userId}`);
 
         const result = await db.get(
             'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0',
             [userId]
         );
 
-        console.log(`📊 Unread count for user ${userId}: ${result.count || 0}`);
-
-        const totalResult = await db.get(
-            'SELECT COUNT(*) as count FROM notifications WHERE user_id = ?',
-            [userId]
-        );
-
-        console.log(`📊 Total notifications for user ${userId}: ${totalResult.count || 0}`);
+        console.log(`[Legacy] Unread count for user ${userId}: ${result.count || 0}`);
 
         res.status(200).json({
             success: true,
@@ -147,62 +248,6 @@ router.get('/notifications/unread-count', authenticateToken, authorizeRole(['cus
     }
 });
 
-// GET /api/bookings/notifications - Get customer notifications
-router.get('/notifications', authenticateToken, authorizeRole(['customer']), async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const { limit = 50, unread_only } = req.query;
-
-        console.log(`📩 Fetching notifications for user ${userId}, limit: ${limit}, unread_only: ${unread_only}`);
-
-        let query = `
-            SELECT
-                n.id, n.title, n.message, n.type, n.is_read, n.created_at,
-                r.name as restaurant_name,
-                b.date as booking_date, b.time as booking_time,
-                o.id as order_id, o.order_type
-            FROM notifications n
-            LEFT JOIN restaurants r ON n.restaurant_id = r.id
-            LEFT JOIN bookings b ON n.booking_id = b.id
-            LEFT JOIN orders o ON n.order_id = o.id
-            WHERE n.user_id = ?
-        `;
-
-        const queryParams = [userId];
-
-        if (unread_only === 'true') {
-            query += ' AND n.is_read = 0';
-        }
-
-        query += ' ORDER BY n.created_at DESC LIMIT ?';
-        queryParams.push(parseInt(limit));
-
-        console.log(`�� Query: ${query}`);
-        console.log(`📩 Params: ${JSON.stringify(queryParams)}`);
-
-        const notifications = await db.all(query, queryParams);
-
-        console.log(`📩 Found ${notifications.length} notifications for user ${userId}`);
-        if (notifications.length > 0) {
-            console.log(`📩 First notification:`, JSON.stringify(notifications[0], null, 2));
-        }
-
-        res.status(200).json({
-            success: true,
-            message: 'Notifications retrieved successfully',
-            data: notifications
-        });
-
-    } catch (error) {
-        console.error('Get notifications error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error while fetching notifications'
-        });
-    }
-});
-
-// PUT /api/bookings/notifications/mark-all-read - Mark all notifications as read
 router.put('/notifications/mark-all-read', authenticateToken, authorizeRole(['customer']), async (req, res) => {
     try {
         const userId = req.user.id;
@@ -226,7 +271,6 @@ router.put('/notifications/mark-all-read', authenticateToken, authorizeRole(['cu
     }
 });
 
-// PUT /api/bookings/notifications/:id/read - Mark notification as read
 router.put('/notifications/:id/read', authenticateToken, authorizeRole(['customer']), async (req, res) => {
     try {
         const { id } = req.params;
@@ -262,6 +306,7 @@ router.put('/notifications/:id/read', authenticateToken, authorizeRole(['custome
         });
     }
 });
+
 
 // GET /api/bookings - Get user's bookings
 router.get('/', authenticateToken, authorizeRole(['customer']), async (req, res) => {
