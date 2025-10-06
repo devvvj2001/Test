@@ -232,7 +232,7 @@ const SuperAdminDashboard = () => {
                   <div className="ml-5 w-0 flex-1">
                     <dl>
                       <dt className="text-sm font-medium text-gray-500 truncate">Platform Revenue</dt>
-                      <dd className="text-lg font-medium text-gray-900">${dashboardStats.totalRevenue || 0}</dd>
+                      <dd className="text-lg font-medium text-gray-900">₹{dashboardStats.totalRevenue || 0}</dd>
                     </dl>
                   </div>
                 </div>
@@ -254,7 +254,7 @@ const SuperAdminDashboard = () => {
                           <p className="text-sm text-gray-500">{order.restaurant_name} • {order.customer_name}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium text-gray-900">${order.total_amount}</p>
+                          <p className="text-sm font-medium text-gray-900">₹{order.total_amount}</p>
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                             order.status === 'completed' ? 'bg-green-100 text-green-800' :
                             order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -282,7 +282,7 @@ const SuperAdminDashboard = () => {
                           <p className="text-sm text-gray-500">{restaurant.cuisine}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium text-gray-900">${restaurant.revenue || 0}</p>
+                          <p className="text-sm font-medium text-gray-900">₹{restaurant.revenue || 0}</p>
                           <p className="text-sm text-gray-500">{restaurant.total_orders || 0} orders</p>
                         </div>
                       </div>
@@ -355,7 +355,7 @@ const SuperAdminDashboard = () => {
                           {restaurant.total_orders || 0}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          ${restaurant.revenue || 0}
+                          ₹{restaurant.revenue || 0}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -478,7 +478,7 @@ const SuperAdminDashboard = () => {
                           {order.order_type}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          ${order.total_amount}
+                          ₹{order.total_amount}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -514,7 +514,7 @@ const SuperAdminDashboard = () => {
                     <div key={index} className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">{item.month}</span>
                       <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900">${item.revenue}</div>
+                        <div className="text-sm font-medium text-gray-900">₹{item.revenue}</div>
                         <div className="text-xs text-gray-500">{item.order_count} orders</div>
                       </div>
                     </div>
@@ -529,7 +529,7 @@ const SuperAdminDashboard = () => {
                     <div key={index} className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">{item.cuisine}</span>
                       <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900">${item.revenue}</div>
+                        <div className="text-sm font-medium text-gray-900">₹{item.revenue}</div>
                         <div className="text-xs text-gray-500">{item.order_count} orders</div>
                       </div>
                     </div>

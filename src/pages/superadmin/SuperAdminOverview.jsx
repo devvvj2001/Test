@@ -174,7 +174,7 @@ const SuperAdminOverview = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Platform Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">${stats.totalRevenue || 0}</p>
+              <p className="text-2xl font-bold text-gray-900">₹{stats.totalRevenue || 0}</p>
               <div className="flex items-center mt-2">
                 <ArrowUp className="w-4 h-4 text-green-500" />
                 <span className="text-sm text-green-600 ml-1">+22% growth</span>
@@ -239,7 +239,7 @@ const SuperAdminOverview = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-900">${order.total_amount}</p>
+                    <p className="font-semibold text-gray-900">₹{order.total_amount}</p>
                     <p className="text-sm text-gray-500">{order.customer_name}</p>
                   </div>
                 </div>
@@ -275,7 +275,7 @@ const SuperAdminOverview = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-900">${restaurant.revenue.toLocaleString()}</p>
+                    <p className="font-semibold text-gray-900">₹{restaurant.revenue.toLocaleString()}</p>
                     <p className="text-sm text-green-600">{restaurant.growth}</p>
                   </div>
                 </div>

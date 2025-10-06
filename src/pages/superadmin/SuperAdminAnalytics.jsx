@@ -147,13 +147,13 @@ const SuperAdminAnalytics = () => {
             const height = (month.revenue / maxRevenue) * 200;
             return (
               <div key={index} className="flex-1 flex flex-col items-center">
-                <div 
+                <div
                   className="w-full bg-gradient-to-t from-yellow-500 to-orange-500 rounded-t transition-all duration-500 hover:from-yellow-600 hover:to-orange-600"
                   style={{ height: `${height}px` }}
-                  title={`${month.month}: $${month.revenue.toLocaleString()}`}
+                  title={`${month.month}: ₹${month.revenue.toLocaleString()}`}
                 ></div>
                 <p className="text-xs text-gray-500 mt-2">{month.month}</p>
-                <p className="text-xs text-gray-400">${month.revenue.toLocaleString()}</p>
+                <p className="text-xs text-gray-400">₹{month.revenue.toLocaleString()}</p>
               </div>
             );
           })}
@@ -178,7 +178,7 @@ const SuperAdminAnalytics = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-gray-900">${restaurant.revenue.toLocaleString()}</p>
+                  <p className="font-semibold text-gray-900">₹{restaurant.revenue.toLocaleString()}</p>
                   <div className="flex items-center space-x-1">
                     <span className="text-sm text-yellow-600">★ {restaurant.avg_rating}</span>
                   </div>
@@ -222,7 +222,7 @@ const SuperAdminAnalytics = () => {
               <h4 className="font-semibold text-gray-900 mb-2">{cuisine.cuisine}</h4>
               <p className="text-2xl font-bold text-blue-600 mb-1">{cuisine.order_count}</p>
               <p className="text-sm text-gray-500 mb-2">orders</p>
-              <p className="text-lg font-semibold text-green-600">${cuisine.revenue.toLocaleString()}</p>
+              <p className="text-lg font-semibold text-green-600">₹{cuisine.revenue.toLocaleString()}</p>
               <p className="text-xs text-gray-500">revenue</p>
             </div>
           ))}

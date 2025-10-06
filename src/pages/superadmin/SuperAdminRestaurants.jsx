@@ -313,7 +313,7 @@ const SuperAdminRestaurants = () => {
                   <p className="text-xs text-gray-500">Orders</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-lg font-bold text-green-600">${restaurant.revenue?.toLocaleString() || 0}</p>
+                  <p className="text-lg font-bold text-green-600">₹{restaurant.revenue?.toLocaleString() || 0}</p>
                   <p className="text-xs text-gray-500">Revenue</p>
                 </div>
               </div>
@@ -694,7 +694,7 @@ const SuperAdminRestaurants = () => {
                     <p className="text-sm text-gray-500">Total Orders</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-green-600">${selectedRestaurant.revenue?.toLocaleString() || 0}</p>
+                    <p className="text-2xl font-bold text-green-600">₹{selectedRestaurant.revenue?.toLocaleString() || 0}</p>
                     <p className="text-sm text-gray-500">Revenue</p>
                   </div>
                 </div>

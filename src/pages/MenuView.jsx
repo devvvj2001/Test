@@ -234,7 +234,7 @@ const MenuView = () => {
                   className="w-full h-40 md:h-48 object-cover"
                 />
                 <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full">
-                  <span className="font-bold text-green-600">${item.price}</span>
+                  <span className="font-bold text-green-600">₹{item.price}</span>
                 </div>
                 
                 {item.dietary && (

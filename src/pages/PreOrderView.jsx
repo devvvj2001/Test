@@ -38,7 +38,7 @@ const PreOrderView = () => {
   const groupedItemsArray = Object.values(groupedItems);
   const subtotal = groupedItemsArray.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const tax = subtotal * 0.08; // 8% tax
-  const deliveryFee = orderDetails.orderType === 'delivery' ? 5.99 : 0;
+  const deliveryFee = orderDetails.orderType === 'delivery' ? 99 : 0;
   const total = subtotal + tax + deliveryFee;
 
   const handleQuantityChange = (item, change) => {
@@ -154,7 +154,7 @@ const PreOrderView = () => {
                     
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                      <p className="text-green-600 font-medium">${item.price.toFixed(2)}</p>
+                      <p className="text-green-600 font-medium">₹{item.price.toFixed(2)}</p>
                     </div>
                     
                     <div className="flex items-center space-x-3">
@@ -174,7 +174,7 @@ const PreOrderView = () => {
                     </div>
                     
                     <div className="text-right">
-                      <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="font-semibold">₹{(item.price * item.quantity).toFixed(2)}</p>
                     </div>
                     
                     <button
@@ -223,7 +223,7 @@ const PreOrderView = () => {
                         onChange={(e) => setOrderDetails(prev => ({ ...prev, orderType: e.target.value }))}
                         className="mr-2"
                       />
-                      <span>Delivery (+$5.99)</span>
+                      <span>Delivery (+₹99)</span>
                     </label>
                   </div>
                 </div>
@@ -264,22 +264,22 @@ const PreOrderView = () => {
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tax (8%)</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span>₹{tax.toFixed(2)}</span>
                 </div>
                 {deliveryFee > 0 && (
                   <div className="flex justify-between">
                     <span>Delivery Fee</span>
-                    <span>${deliveryFee.toFixed(2)}</span>
+                    <span>₹{deliveryFee.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="border-t pt-3">
                   <div className="flex justify-between font-semibold text-lg">
                     <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>₹{total.toFixed(2)}</span>
                   </div>
                 </div>
               </div>

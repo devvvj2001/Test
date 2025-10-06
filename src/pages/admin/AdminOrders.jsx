@@ -285,8 +285,7 @@ const AdminOrders = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center space-x-1">
-                      <DollarSign className="w-4 h-4 text-green-500" />
-                      <span className="text-sm font-medium text-gray-900">{order.total_amount}</span>
+                      <span className="text-sm font-medium text-gray-900">₹{order.total_amount}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -353,7 +352,7 @@ const AdminOrders = () => {
                 
                 <div>
                   <p className="text-sm font-medium text-gray-700">Total Amount:</p>
-                  <p className="text-sm text-gray-900">${selectedOrder.total_amount}</p>
+                  <p className="text-sm text-gray-900">₹{selectedOrder.total_amount}</p>
                 </div>
                 
                 <div>
@@ -376,7 +375,7 @@ const AdminOrders = () => {
                     {selectedOrder.items?.map((item, index) => (
                       <div key={index} className="flex justify-between text-sm">
                         <span>{item.item_name} x{item.quantity}</span>
-                        <span>${(item.price * item.quantity).toFixed(2)}</span>
+                        <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>

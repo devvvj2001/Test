@@ -166,7 +166,7 @@ const AdminOverview = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Today's Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">${stats.todayRevenue || 0}</p>
+              <p className="text-2xl font-bold text-gray-900">₹{stats.todayRevenue || 0}</p>
               <div className="flex items-center mt-2">
                 <ArrowUp className="w-4 h-4 text-green-500" />
                 <span className="text-sm text-green-600 ml-1">+8% from yesterday</span>
@@ -232,7 +232,7 @@ const AdminOverview = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-900">${order.total_amount}</p>
+                    <p className="font-semibold text-gray-900">₹{order.total_amount}</p>
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                       order.status === 'completed' ? 'bg-green-100 text-green-800' :
                       order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :

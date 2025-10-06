@@ -482,7 +482,7 @@ const AdminMenu = () => {
                 className="w-full h-48 object-cover"
               />
               <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                <span className="font-bold text-green-600">${item.price}</span>
+                <span className="font-bold text-green-600">₹{item.price}</span>
               </div>
               
               <div className="absolute bottom-4 left-4">

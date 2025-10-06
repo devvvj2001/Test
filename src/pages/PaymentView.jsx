@@ -149,7 +149,7 @@ const PaymentView = () => {
           </p>
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <p className="text-sm text-gray-700">
-              <strong>Order Total:</strong> ${orderData.pricing.total.toFixed(2)}
+              <strong>Order Total:</strong> ₹{orderData.pricing.total.toFixed(2)}
             </p>
             <p className="text-sm text-gray-700">
               <strong>Restaurant:</strong> {orderData.restaurant.name}
@@ -309,7 +309,7 @@ const PaymentView = () => {
                 ) : (
                   <>
                     <Lock className="w-5 h-5" />
-                    <span>Pay ${orderData.pricing.total.toFixed(2)}</span>
+                    <span>Pay ₹{orderData.pricing.total.toFixed(2)}</span>
                   </>
                 )}
               </button>
@@ -347,7 +347,7 @@ const PaymentView = () => {
                     <p className="font-medium">{item.name}</p>
                     <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                   </div>
-                  <span className="font-semibold">${(item.price * item.quantity).toFixed(2)}</span>
+                  <span className="font-semibold">₹{(item.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -355,22 +355,22 @@ const PaymentView = () => {
             <div className="border-t pt-4 space-y-2">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>${orderData.pricing.subtotal.toFixed(2)}</span>
+                <span>₹{orderData.pricing.subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Tax</span>
-                <span>${orderData.pricing.tax.toFixed(2)}</span>
+                <span>₹{orderData.pricing.tax.toFixed(2)}</span>
               </div>
               {orderData.pricing.deliveryFee > 0 && (
                 <div className="flex justify-between">
                   <span>Delivery Fee</span>
-                  <span>${orderData.pricing.deliveryFee.toFixed(2)}</span>
+                  <span>₹{orderData.pricing.deliveryFee.toFixed(2)}</span>
                 </div>
               )}
               <div className="border-t pt-2">
                 <div className="flex justify-between font-semibold text-lg">
                   <span>Total</span>
-                  <span>${orderData.pricing.total.toFixed(2)}</span>
+                  <span>₹{orderData.pricing.total.toFixed(2)}</span>
                 </div>
               </div>
             </div>
