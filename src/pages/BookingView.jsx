@@ -72,13 +72,13 @@ function App() {
     };
 
     const minSpends = {
-      couple: "$25",
-      family: "$40", 
-      group: "$60",
-      private: "$80",
-      outdoor: "$30",
-      bar: "$20",
-      standard: "$30"
+      couple: "₹2000",
+      family: "₹3200",
+      group: "₹4800",
+      private: "₹6400",
+      outdoor: "₹2400",
+      bar: "₹1600",
+      standard: "₹2400"
     };
 
     const descriptions = {
